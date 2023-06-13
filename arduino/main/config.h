@@ -19,6 +19,13 @@ byte rowPins[rows] = {27, 26, 25, 33}; //connect to the row pinouts of the keypa
 byte colPins[cols] = {5,18,19}; //connect to the column pinouts of the keypad
 
 //位置定義
-#define Location_20 =0
+#define Location_20 2000
+#define Location_18 1400
+#define Location_15 1100
+#define Location_12 800
+#define Location_9 600
+#define Location_6 400
+#define Location_3 200
+
 
 #endif

@@ -1,4 +1,4 @@
-
+//警告除非你知道你在做什麼，否則別改這頁的內容需要自定義參數請修改config.h
 
 #include "config.h"
 
@@ -27,12 +27,20 @@ void motor_state(int speed  //速度
                  bool mode  //模式 true 位置控制 /false 增量控制
 ) {
   digitalWrite(DIR, DIR_s);  //true正轉,false反轉
-  Serial.println("Spinning Clockwise...");
+  Serial.println(-10-10);
   if (mode) {
+    Serial.print(pulse_s);
+    Serial.print("-");
+    Serial.println(pulse);
+    
+    
     int err = pulse_s - pulse;
+    Serial.println(err);
     if (err > 0) {
+      DIR_s=1;
       digitalWrite(DIR, HIGH);
     } else {
+      DIR_s=0;
       digitalWrite(DIR, LOW);
     }
     err = abs(err);
@@ -160,26 +168,85 @@ void ReturnToZero(int8_t options) {
     }
   }
 }
-void OptionsUpdate(int8_t options) {
+void OptionsUpdate(int8_t options) {  //選項輸入更新處理
   switch (options) {
     case 1:
       if (pages == 1) {
         ReturnToZero(options);  //手動歸零
+      } else if (pages == 2) {
+        Text(options);  //旋轉角度測試
       }
       break;
     case 2:
+    if (pages == 1) {
+        run();//執行主程式
+      } else if (pages == 2) {
+        
+      }
       break;
     case 3:
       if (pages >= 2) {
         pages = 1;
       } else {
-        pages ++;
+        pages++;
       }
       show_menu();
       break;
   }
 }
-void Correction() {
+void Text(int8_t options) {  //旋轉角度測試
+  u8g2.clearBuffer();
+  u8g2.setCursor(0, 15);
+  u8g2.print("1.左眼");
+  u8g2.setCursor(0, 35);
+  u8g2.print("2.右眼");
+  u8g2.setCursor(0, 55);
+  u8g2.print("3.返回");
+  u8g2.sendBuffer();
+  while (1) {
+    int key = get_key();
+    switch (key) {
+      case 1:
+        Text_1();
+        break;
+      case 2:
+        Text_1();
+        break;
+      case 3:
+        show_menu();
+        return;
+    }
+  }
+}
+void Text_1() {
+  u8g2.clearBuffer();
+  u8g2.setCursor(0, 15);
+  u8g2.print("1.正轉");
+  u8g2.setCursor(0, 35);
+  u8g2.print("2.反轉");
+  u8g2.setCursor(0, 55);
+  u8g2.print("3.返回");
+  u8g2.sendBuffer();
+  while (1) {
+    int key = get_key();
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 15);
+    u8g2.print(pulse);
+    u8g2.sendBuffer();
+    switch (key) {
+      case 1:
+        motor_state(800, true, 100, 0);
+        break;
+      case 2:
+        motor_state(800, false, 100, 0);
+        break;
+      case 3:
+        show_menu();
+        return;
+    }
+  }
+}
+void Correction() {  //此功能以停用
   bool state = true;
   while (1) {
     if (!digitalRead(dia) && state) {
@@ -221,25 +288,46 @@ void show_menu() {  //顯示菜單
 }
 
 void run() {
-  digitalWrite(DIR, HIGH);
-  Serial.println("Spinning Clockwise...");
-
-  for (int i = 0; i < steps_per_rev; i++) {
-    digitalWrite(STEP, HIGH);
-    delayMicroseconds(800);
-    digitalWrite(STEP, LOW);
-    delayMicroseconds(800);
-  }
+  motor_state( 800  //速度
+              ,
+              0  //方向
+              ,
+              Location_20  //脈波數量
+              ,
+              true  //模式 true 位置控制 /false 增量控制
+  );
   delay(1000);
-
-  digitalWrite(DIR, LOW);
-  Serial.println("Spinning Anti-Clockwise...");
-
-  for (int i = 0; i <= steps_per_rev; i++) {
-    digitalWrite(STEP, HIGH);
-    delayMicroseconds(800);
-    digitalWrite(STEP, LOW);
-    delayMicroseconds(800);
-  }
+  motor_state( 800  //速度
+              ,
+              0  //方向
+              ,
+              0  //脈波數量
+              ,
+              true  //模式 true 位置控制 /false 增量控制
+  );
   delay(1000);
+  motor_state( 800  //速度
+              ,
+              0  //方向
+              ,
+              -Location_20  //脈波數量
+              ,
+              true  //模式 true 位置控制 /false 增量控制
+  );
+  delay(1000);
+   motor_state( 800  //速度
+              ,
+              0  //方向
+              ,
+              0  //脈波數量
+              ,
+              true  //模式 true 位置控制 /false 增量控制
+  );
+  //   Location_20
+  // Location_18
+  // Location_15
+  // Location_12
+  // Location_9
+  // Location_6
+  // Location_3
 }
