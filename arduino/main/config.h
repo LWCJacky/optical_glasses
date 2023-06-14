@@ -20,12 +20,44 @@ byte colPins[cols] = {5,18,19}; //connect to the column pinouts of the keypad
 
 //位置定義
 #define Location_20 2000
-#define Location_18 1400
+#define Location_19 2000
+#define Location_18 2000
+#define Location_17 2000
+#define Location_16 1400
 #define Location_15 1100
-#define Location_12 800
+#define Location_14 800
+#define Location_13 400
+#define Location_12 400
+#define Location_11 400
+#define Location_10 400
 #define Location_9 600
-#define Location_6 400
+#define Location_8 400
+#define Location_7 400
+#define Location_6 200
+#define Location_5 200
+#define Location_4 200
 #define Location_3 200
-
-
+#define Location_2 200
+#define Location_1 200
+//負值
+#define low_Location_1 200
+#define low_Location_2 200
+#define low_Location_3 200
+#define low_Location_4 200
+#define low_Location_5 200
+#define low_Location_6 200
+#define low_Location_7 200
+#define low_Location_8 200
+#define low_Location_9 200
+#define low_Location_10 200
+#define low_Location_11 200
+#define low_Location_12 200
+#define low_Location_13 200
+#define low_Location_14 200
+#define low_Location_15 200
+#define low_Location_16 200
+#define low_Location_17 200
+#define low_Location_18 200
+#define low_Location_19 200
+#define low_Location_20 200
 #endif

@@ -9,6 +9,18 @@
 #include "stdint.h"
 #define I2C_SDA 21
 #define I2C_SCL 22
+
+
+int RightEyePosition[] = { Location_1, Location_2, Location_3, Location_4,
+                           Location_5, Location_6, Location_7, Location_8,
+                           Location_9, Location_10, Location_11, Location_12,
+                           Location_13, Location_14, Location_15, Location_16,
+                           Location_17, Location_18, Location_19, Location_20 };
+int RightEyeLowPosition[] = { low_Location_1, low_Location_2, low_Location_3, low_Location_4,
+                              low_Location_5, low_Location_6, low_Location_7, low_Location_8,
+                              low_Location_9, low_Location_10, low_Location_11, low_Location_12,
+                              low_Location_13, low_Location_14, low_Location_15, low_Location_16,
+                              low_Location_17, low_Location_18, low_Location_19, low_Location_20 };
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, rows, cols);
@@ -27,20 +39,20 @@ void motor_state(int speed  //速度
                  bool mode  //模式 true 位置控制 /false 增量控制
 ) {
   digitalWrite(DIR, DIR_s);  //true正轉,false反轉
-  Serial.println(-10-10);
+  Serial.println(-10 - 10);
   if (mode) {
     Serial.print(pulse_s);
     Serial.print("-");
     Serial.println(pulse);
-    
-    
+
+
     int err = pulse_s - pulse;
     Serial.println(err);
     if (err > 0) {
-      DIR_s=1;
+      DIR_s = 1;
       digitalWrite(DIR, HIGH);
     } else {
-      DIR_s=0;
+      DIR_s = 0;
       digitalWrite(DIR, LOW);
     }
     err = abs(err);
@@ -98,7 +110,7 @@ int get_key() {
   char key = keypad.getKey();
   int int_key = -1;
   if (key != NO_KEY) {
-    Serial.println(key);
+    // Serial.println(key);
     switch (key) {
       case '1':
         int_key = 1;
@@ -178,10 +190,9 @@ void OptionsUpdate(int8_t options) {  //選項輸入更新處理
       }
       break;
     case 2:
-    if (pages == 1) {
-        run();//執行主程式
+      if (pages == 1) {
+        run();  //執行主程式
       } else if (pages == 2) {
-        
       }
       break;
     case 3:
@@ -287,47 +298,135 @@ void show_menu() {  //顯示菜單
   }
 }
 
-void run() {
-  motor_state( 800  //速度
-              ,
-              0  //方向
-              ,
-              Location_20  //脈波數量
-              ,
-              true  //模式 true 位置控制 /false 增量控制
-  );
-  delay(1000);
-  motor_state( 800  //速度
-              ,
-              0  //方向
-              ,
-              0  //脈波數量
-              ,
-              true  //模式 true 位置控制 /false 增量控制
-  );
-  delay(1000);
-  motor_state( 800  //速度
-              ,
-              0  //方向
-              ,
-              -Location_20  //脈波數量
-              ,
-              true  //模式 true 位置控制 /false 增量控制
-  );
-  delay(1000);
-   motor_state( 800  //速度
-              ,
-              0  //方向
-              ,
-              0  //脈波數量
-              ,
-              true  //模式 true 位置控制 /false 增量控制
-  );
-  //   Location_20
-  // Location_18
-  // Location_15
-  // Location_12
-  // Location_9
-  // Location_6
-  // Location_3
+void run() {  //執行主程式
+  String stringThree;
+  int8_t R = 0;
+  int8_t L = 0;
+  bool SelectMode;  //TRUE=雙眼參數同步/FALSE=雙眼設定獨立參數
+  while (1) {
+    char key = keypad.getKey();
+    bool state = false;
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 15);
+    u8g2.print("1.one");
+    u8g2.setCursor(0, 35);
+    u8g2.print("2.two");
+    u8g2.setCursor(0, 55);
+    u8g2.print("3.返回");
+    u8g2.sendBuffer();
+    switch (key) {
+      case '1':
+        SelectMode = true;
+        state = true;
+        break;
+      case '2':
+        SelectMode = false;
+        state = true;
+        break;
+      case '3':
+        show_menu();
+        return;
+    }
+    if (state) {
+      break;
+    }
+  }
+  int8_t counter = 0;
+  while (1) {
+    char key = keypad.getKey();
+
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 15);
+    if (SelectMode) {
+      u8g2.print("左右眼 INPUT");
+    } else if (counter == 0) {
+      u8g2.print("右眼 INPUT");
+    } else {
+      u8g2.print("左眼 INPUT");
+    }
+
+    // u8g2.sendBuffer();
+
+    if (key != '*' && key != '#' && key != 0) {
+
+      stringThree += key;
+
+      Serial.println(stringThree);
+    }
+    u8g2.setCursor(15, 35);
+    u8g2.print(stringThree);
+    u8g2.sendBuffer();
+    if (stringThree.length() == 2) {
+      if (SelectMode) {
+        R = stringThree.toInt();
+        L = stringThree.toInt();
+        Serial.print("R=");
+        Serial.println(R);
+        Serial.print("L=");
+        Serial.println(L);
+        delay(1000);
+        show_menu();
+        return;
+      } else if (counter == 0) {
+        R = stringThree.toInt();
+        stringThree = "";
+        counter++;
+      } else if (counter == 1) {
+        L = stringThree.toInt();
+        Serial.print("R=");
+        Serial.println(R);
+        Serial.print("L=");
+        Serial.println(L);
+        delay(1000);
+        show_menu();
+        return;
+      }
+    }
+    switch (key) {
+      // case 1:
+      //   motor_state(800, true, 100, 0);
+      //   break;
+      // case 2:
+      //   motor_state(800, false, 100, 0);
+      //   break;
+      case 3:
+        show_menu();
+        return;
+    }
+  }
+  // motor_state( 800  //速度
+  //             ,
+  //             0  //方向
+  //             ,
+  //             Location_20  //脈波數量
+  //             ,
+  //             true  //模式 true 位置控制 /false 增量控制
+  // );
+  // delay(1000);
+  // motor_state( 800  //速度
+  //             ,
+  //             0  //方向
+  //             ,
+  //             0  //脈波數量
+  //             ,
+  //             true  //模式 true 位置控制 /false 增量控制
+  // );
+  // delay(1000);
+  // motor_state( 800  //速度
+  //             ,
+  //             0  //方向
+  //             ,
+  //             -Location_20  //脈波數量
+  //             ,
+  //             true  //模式 true 位置控制 /false 增量控制
+  // );
+  // delay(1000);
+  //  motor_state( 800  //速度
+  //             ,
+  //             0  //方向
+  //             ,
+  //             0  //脈波數量
+  //             ,
+  //             true  //模式 true 位置控制 /false 增量控制
+  // );
 }
