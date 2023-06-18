@@ -1,11 +1,23 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 #include <U8g2lib.h>
+#define ESPNOW_CHANNEL 1
+uint8_t senderMacAddress[] = {0xC0,0x49,0xEF,0xBB,0x7E,0x58};  // 替換為 Sender 的 MAC 位址
 
 // 定義配置參數
-#define DIR 12
-#define STEP 14
-#define dia 4
+// 步進馬達引腳配置
+#define DIR_PIN_1 12
+#define STEP_PIN_1 14
+#define EN_1 13
+
+#define DIR_PIN_2 4
+#define STEP_PIN_2 16
+#define EN_2 17
+
+
+// #define DIR 12
+// #define STEP 14
+#define STEPS_PER_REV 64   // 步進馬達每個完整旋轉的步數
 #define steps_per_rev 2048*3.84
 const byte rows = 4; //four rows
 const byte cols = 3; //three columns
