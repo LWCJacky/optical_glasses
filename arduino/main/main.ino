@@ -14,7 +14,7 @@
 #define I2C_SCL 22
 long currentPosition1;  //步進馬達當前位置
 long currentPosition2;  //步進馬達當前位置
-
+bool espnow_quit = 0;
 int RightEyePosition[] = { Location_1, Location_2, Location_3, Location_4,
                            Location_5, Location_6, Location_7, Location_8,
                            Location_9, Location_10, Location_11, Location_12,
@@ -38,12 +38,12 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, rows, cols);
 bool show_menu_stest = true;
 int8_t pages = 1;
 int pulse = 0;
-
+bool playStest=false;
 
 
 // 傳輸資料的結構體
 typedef struct struct_message {
-  int Motor_number;  //0=同步 1＝1號馬達/ 2=二號馬達
+  int Motor_number;  //0=同步 1＝1號馬達/ 2=二號馬達 /3 =執行主程式
   int mode;          //模式 0=位置模式 //1=增量控制
   int pulse;         //mode=0 指定移動的位置 //mode=1 移動的距離
   bool dir;          //方向 //mode=0 此方法無效 //mode=1 0=正轉/1=反轉 //此方法以機構指針方向定義非馬達方向
@@ -53,6 +53,116 @@ typedef struct struct_message {
 // Create a struct_message called myData
 struct_message myData;
 
+
+void Task1_senddata(void * pvParameters ) {
+  while(1){
+    vTaskDelay(1);
+    // Serial.println("Task1 run");
+    if(playStest&&espnow_quit == 0){
+      play(myData.speed, myData.pulse);
+    }else if(playStest&&espnow_quit == 1){
+      quit(); 
+      playStest=false;
+    }
+    
+  }
+  
+}
+void Task2_senddata(void * pvParameters ) {
+  while(1){
+    int8_t key = get_key();
+    if (key > 0) {
+      OptionsUpdate(key);
+  }
+  }
+}
+TaskHandle_t Task1;
+TaskHandle_t Task2;
+void setup() {
+
+
+  Serial.begin(115200);
+
+  // 初始化 ESP32 Wi-Fi
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+
+  // 獲取並顯示 MAC 位址
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  Serial.print("MAC Address: ");
+  for (int i = 0; i < 6; ++i) {
+    Serial.print(mac[i], HEX);
+    if (i < 5) {
+      Serial.print(":");
+    }
+  }
+  Serial.println();
+  // 初始化 ESP32 Wi-Fi
+  WiFi.mode(WIFI_STA);
+  // // 設定 ESPNOW 對等裝置（Sender）
+  // esp_now_peer_info_t peerInfo;
+  // memcpy(peerInfo.peer_addr, senderMacAddress, sizeof(senderMacAddress));
+  // peerInfo.channel = ESPNOW_CHANNEL;
+  // peerInfo.encrypt = false;
+
+  // Init ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Once ESPNow is successfully Init, we will register for recv CB to
+  // get recv packer info
+  esp_now_register_recv_cb(OnDataRecv);
+
+
+
+
+  // pinMode(STEP, OUTPUT);
+  // pinMode(DIR, OUTPUT);
+  pinMode(EN_1, OUTPUT);
+  pinMode(EN_2, OUTPUT);
+  digitalWrite(EN_1, LOW);
+  digitalWrite(EN_2, LOW);
+  stepper1.setMaxSpeed(500);      // 步進馬達最大速度
+  stepper1.setAcceleration(500);  // 步進馬達加速度
+  stepper2.setMaxSpeed(500);
+  stepper2.setAcceleration(500);
+
+  // 初始位置
+  stepper1.setCurrentPosition(0);
+  stepper2.setCurrentPosition(0);
+
+  delay(3000);
+  u8g2.begin();
+  u8g2.enableUTF8Print();
+  u8g2.setFont(u8g2_font_unifont_t_chinese1);  // use chinese2 for all the glyphs of "你好世界"
+  u8g2.setFontDirection(0);
+  u8g2.clearBuffer();
+  u8g2.setCursor(0, 40);
+  u8g2.print("歡迎使用光學眼鏡");
+  u8g2.sendBuffer();
+  delay(1000);
+  show_menu();
+  xTaskCreatePinnedToCore(
+    Task1_senddata, /*任務實際對應的Function*/
+    "Task1",        /*任務名稱*/
+    10000,          /*堆疊空間*/
+    NULL,           /*無輸入值*/
+    0,                 /*優先序0*/
+    &Task1,       /*對應的任務變數位址*/
+    0);                /*指定在核心0執行 */
+  xTaskCreatePinnedToCore(
+    Task2_senddata, /*任務實際對應的Function*/
+    "Task1",        /*任務名稱*/
+    10000,          /*堆疊空間*/
+    NULL,           /*無輸入值*/
+    0,                 /*優先序0*/
+    &Task2,       /*對應的任務變數位址*/
+    1);     
+  // run();
+}
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
@@ -130,6 +240,14 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
         moto_run();
       }
     }
+  } else if (myData.Motor_number == 3) {  //執行主程式
+    if (myData.mode != 1) {
+      espnow_quit = 0;
+      playStest=true;
+      
+    } else {
+      espnow_quit = 1;
+    }
   }
 }
 
@@ -153,75 +271,7 @@ void moto_run() {
 
 
 
-void setup() {
 
-
-  Serial.begin(115200);
-
-  // 初始化 ESP32 Wi-Fi
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-
-  // 獲取並顯示 MAC 位址
-  uint8_t mac[6];
-  WiFi.macAddress(mac);
-  Serial.print("MAC Address: ");
-  for (int i = 0; i < 6; ++i) {
-    Serial.print(mac[i], HEX);
-    if (i < 5) {
-      Serial.print(":");
-    }
-  }
-  Serial.println();
-  // 初始化 ESP32 Wi-Fi
-  WiFi.mode(WIFI_STA);
-  // // 設定 ESPNOW 對等裝置（Sender）
-  // esp_now_peer_info_t peerInfo;
-  // memcpy(peerInfo.peer_addr, senderMacAddress, sizeof(senderMacAddress));
-  // peerInfo.channel = ESPNOW_CHANNEL;
-  // peerInfo.encrypt = false;
-
-  // Init ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-
-  // Once ESPNow is successfully Init, we will register for recv CB to
-  // get recv packer info
-  esp_now_register_recv_cb(OnDataRecv);
-
-
-
-
-  // pinMode(STEP, OUTPUT);
-  // pinMode(DIR, OUTPUT);
-  pinMode(EN_1, OUTPUT);
-  pinMode(EN_2, OUTPUT);
-  digitalWrite(EN_1, LOW);
-  digitalWrite(EN_2, LOW);
-  stepper1.setMaxSpeed(500);      // 步進馬達最大速度
-  stepper1.setAcceleration(500);  // 步進馬達加速度
-  stepper2.setMaxSpeed(500);
-  stepper2.setAcceleration(500);
-
-  // 初始位置
-  stepper1.setCurrentPosition(0);
-  stepper2.setCurrentPosition(0);
-
-  delay(3000);
-  u8g2.begin();
-  u8g2.enableUTF8Print();
-  u8g2.setFont(u8g2_font_unifont_t_chinese1);  // use chinese2 for all the glyphs of "你好世界"
-  u8g2.setFontDirection(0);
-  u8g2.clearBuffer();
-  u8g2.setCursor(0, 40);
-  u8g2.print("歡迎使用光學眼鏡");
-  u8g2.sendBuffer();
-  delay(1000);
-  show_menu();
-  // run();
-}
 int get_key() {
   char key = keypad.getKey();
   int int_key = -1;
@@ -265,10 +315,7 @@ int get_key() {
   }
 }
 void loop() {
-  int8_t key = get_key();
-  if (key > 0) {
-    OptionsUpdate(key);
-  }
+  vTaskDelay(1);
 }
 AccelStepper *EyeSelection() {
   u8g2.clearBuffer();
@@ -573,7 +620,9 @@ void run() {  //執行主程式
       Serial.println(L_speed);
       delay(1000);
       break;
+
       // }
+
       //  else if (counter == 0) {
       //   R_speed = stringThree.toInt();
       //   stringThree = "";
@@ -591,8 +640,14 @@ void run() {  //執行主程式
       // }
     }
   }
-  stepper1.setSpeed(R_speed);
-  stepper2.setSpeed(R_speed);
+  play(R_speed, R);
+}
+bool ExecutionState = 0;  //0=停止執行 1＝執行中
+void play(int speed, int data_pos) {
+  stepper1.setSpeed(speed);
+  stepper2.setSpeed(speed);
+  ExecutionState = 1;
+  espnow_quit = 0;
   while (1) {  //正式執行
 
     currentPosition1 = stepper1.currentPosition();
@@ -602,12 +657,45 @@ void run() {  //執行主程式
     u8g2.setCursor(15, 35);
     u8g2.print(currentPosition1);
     u8g2.sendBuffer();
-    moveStepperToPosition(stepper1, R);  // 移動到位置1000和500
-    moveStepperToPosition(stepper2, L);  // 移動到位置1000和500
+    moveStepperToPosition(stepper1, data_pos);
+    moveStepperToPosition(stepper2, data_pos);
     moto_run();
     delay(1000);
     currentPosition1 = stepper1.currentPosition();
     currentPosition2 = stepper2.currentPosition();
+    u8g2.clearBuffer();
+    u8g2.setCursor(15, 0);
+    u8g2.print("plus= ");
+    u8g2.setCursor(15, 35);
+    u8g2.print(currentPosition1);
+    u8g2.sendBuffer();
+    moveStepperToPosition(stepper1, 0);
+    moveStepperToPosition(stepper2, 0);
+    moto_run();
+    delay(1000);
+    quit();
+    if (ExecutionState == 0) {
+      break;
+    }
+    currentPosition1 = stepper1.currentPosition();
+    currentPosition2 = stepper2.currentPosition();
+    u8g2.clearBuffer();
+    u8g2.setCursor(15, 0);
+    u8g2.print("plus= ");
+    u8g2.setCursor(15, 35);
+    u8g2.print(currentPosition1);
+    u8g2.sendBuffer();
+    moveStepperToPosition(stepper1, -data_pos - currentPosition1);  // 移動到位置1000和500
+    moveStepperToPosition(stepper2, -data_pos - currentPosition2);  // 移動到位置1000和500
+    moto_run();
+    delay(1000);
+    quit();
+    if (ExecutionState == 0) {
+      break;
+    }
+    currentPosition1 = stepper1.currentPosition();
+    currentPosition2 = stepper2.currentPosition();
+    u8g2.clearBuffer();
     u8g2.setCursor(15, 0);
     u8g2.print("plus= ");
     u8g2.setCursor(15, 35);
@@ -617,27 +705,28 @@ void run() {  //執行主程式
     moveStepperToPosition(stepper2, 0);  // 移動到位置1000和500
     moto_run();
     delay(1000);
-    currentPosition1 = stepper1.currentPosition();
-    currentPosition2 = stepper2.currentPosition();
-    u8g2.setCursor(15, 0);
-    u8g2.print("plus= ");
-    u8g2.setCursor(15, 35);
-    u8g2.print(currentPosition1);
-    u8g2.sendBuffer();
-    moveStepperToPosition(stepper1, -R - currentPosition1);  // 移動到位置1000和500
-    moveStepperToPosition(stepper2, -L - currentPosition2);  // 移動到位置1000和500
-    moto_run();
-    delay(1000);
-    currentPosition1 = stepper1.currentPosition();
-    currentPosition2 = stepper2.currentPosition();
-    u8g2.setCursor(15, 0);
-    u8g2.print("plus= ");
-    u8g2.setCursor(15, 35);
-    u8g2.print(currentPosition1);
+    quit();
+    if (ExecutionState == 0) {
+      break;
+    }
+  }
+}
+
+void quit() {
+  char key = keypad.getKey();
+  Serial.print("espnow_quit:");
+  Serial.println(espnow_quit);
+  if (key == '#' || espnow_quit == 1) {
+    ExecutionState = 0;
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 35);
+    u8g2.print("正在歸零...");
+
     u8g2.sendBuffer();
     moveStepperToPosition(stepper1, 0);  // 移動到位置1000和500
     moveStepperToPosition(stepper2, 0);  // 移動到位置1000和500
     moto_run();
-    delay(1000);
+    show_menu();
+    
   }
 }

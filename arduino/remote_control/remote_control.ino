@@ -14,12 +14,12 @@ int8_t pages = 1;
 
 // 傳輸資料的結構體
 typedef struct struct_message {
-  int Motor_number; //0=同步 1＝1號馬達/ 2=二號馬達
-  int mode;   //模式 0=位置模式 //1=增量控制
-  int pulse;  //mode=0 指定移動的位置 //mode=1 移動的距離
-  bool dir;   //方向 //mode=0 此方法無效 //mode=1 0=正轉/1=反轉 //此方法以機構指針方向定義非馬達方向
-  int speed;  //速度
-  bool res;   // 0＝正常狀態/1＝歸零
+  int Motor_number;  //0=同步 1＝1號馬達/ 2=二號馬達/3 =執行主程式
+  int mode;          //模式 0=位置模式 //1=增量控制//Motor_number=3時mode＝1退出主程式
+  int pulse;         //mode=0 指定移動的位置 //mode=1 移動的距離
+  bool dir;          //方向 //mode=0 此方法無效 //mode=1 0=正轉/1=反轉 //此方法以機構指針方向定義非馬達方向
+  int speed;         //速度
+  bool res;          // 0＝正常狀態/1＝歸零
 } struct_message;
 struct_message myData;
 esp_now_peer_info_t peerInfo;
@@ -105,15 +105,15 @@ void loop() {
 
 
 
-void espnow_control(int Motor_number,int mode,int pulse,bool dir,int speed,bool res) {
+void espnow_control(int Motor_number, int mode, int pulse, bool dir, int speed, bool res) {
   // Set values to send
   // strcpy(myData.a, "THIS IS A CHAR");
   // myData.b = random(1,20);
   // myData.c = 1.2;
   // myData.d = false;
-  myData.Motor_number=Motor_number;
-  myData.mode = mode;     //模式 0=位置模式 //1=增量控制
-  myData.pulse =pulse;   //mode=0 指定移動的位置 //mode=1 移動的距離
+  myData.Motor_number = Motor_number;
+  myData.mode = mode;    //模式 0=位置模式 //1=增量控制
+  myData.pulse = pulse;  //mode=0 指定移動的位置 //mode=1 移動的距離
   myData.dir = dir;      //方向 //mode=0 此方法無效 //mode=1 0=正轉/1=反轉 //此方法以機構指針方向定義非馬達方向
   myData.speed = speed;  //速度
   myData.res = res;      // 0＝正常狀態/1＝歸零
@@ -194,7 +194,7 @@ int EyeSelection() {
 }
 
 void ReturnToZero(int8_t options) {
-  int eye=EyeSelection();
+  int eye = EyeSelection();
   u8g2.clearBuffer();
   u8g2.setCursor(0, 15);
   u8g2.print("1.正轉");
@@ -207,10 +207,10 @@ void ReturnToZero(int8_t options) {
     int key = get_key();
     switch (key) {
       case 1:
-         espnow_control( eye, 1,20,0,200,0);
+        espnow_control(eye, 1, 20, 0, 200, 0);
         break;
       case 2:
-        espnow_control( eye, 1,20,1,200,0);
+        espnow_control(eye, 1, 20, 1, 200, 0);
         break;
       case 3:
         // pulse = 0;
@@ -319,42 +319,42 @@ void show_menu() {  //顯示菜單
 }
 void run() {  //執行主程式
   String stringThree;
-  int8_t R = 0;
-  int8_t L = 0;
-  int R_speed;
-  int L_speed;
+  int R = 0;
+  int L = 0;
+  int R_speed = 0;
+  int L_speed = 0;
 
   bool SelectMode;  //TRUE=雙眼參數同步/FALSE=雙眼設定獨立參數
   //選擇模式
-  while (1) {
-    char key = keypad.getKey();
-    bool state = false;
-    u8g2.clearBuffer();
-    u8g2.setCursor(0, 15);
-    u8g2.print("1.one");
-    u8g2.setCursor(0, 35);
-    u8g2.print("2.two");
-    u8g2.setCursor(0, 55);
-    u8g2.print("3.返回");
-    u8g2.sendBuffer();
-    switch (key) {
-      case '1':
-        SelectMode = true;
-        state = true;
-        break;
-      case '2':
-        SelectMode = false;
-        state = true;
-        break;
-      case '3':
-        show_menu();
-        return;
-    }
-    if (state) {
-      break;
-    }
-  }
-  int8_t counter = 0;
+  // while (1) {
+  // char key = keypad.getKey();
+  // bool state = false;
+  // u8g2.clearBuffer();
+  // u8g2.setCursor(0, 15);
+  // u8g2.print("1.one");
+  // u8g2.setCursor(0, 35);
+  // u8g2.print("2.two");
+  // u8g2.setCursor(0, 55);
+  // u8g2.print("3.返回");
+  // u8g2.sendBuffer();
+  // switch (key) {
+  //   case '1':
+  //     SelectMode = true;
+  //     state = true;
+  //     break;
+  //   case '2':
+  //     SelectMode = false;
+  //     state = true;
+  //     break;
+  //   case '3':
+  //     show_menu();
+  //     return;
+  // }
+  // if (state) {
+  //   break;
+  // }
+  // }
+  // int8_t counter = 0;
   //輸入位置
   while (1) {
     char key = keypad.getKey();
@@ -363,11 +363,12 @@ void run() {  //執行主程式
     u8g2.setCursor(0, 15);
     if (SelectMode) {
       u8g2.print("左右眼 INPUT");
-    } else if (counter == 0) {
-      u8g2.print("右眼 INPUT");
-    } else {
-      u8g2.print("左眼 INPUT");
     }
+    // else if (counter == 0) {
+    //   u8g2.print("右眼 INPUT");
+    // } else {
+    //   u8g2.print("左眼 INPUT");
+    // }
 
     // u8g2.sendBuffer();
 
@@ -377,34 +378,37 @@ void run() {  //執行主程式
 
       Serial.println(stringThree);
     }
+    u8g2.setCursor(15, 0);
+    u8g2.print("plus: ");
     u8g2.setCursor(15, 35);
     u8g2.print(stringThree);
     u8g2.sendBuffer();
-    if (stringThree.length() == 2) {
-      if (SelectMode) {
-        R = stringThree.toInt();
-        L = stringThree.toInt();
-        Serial.print("R=");
-        Serial.println(R);
-        Serial.print("L=");
-        Serial.println(L);
-        delay(1000);
-        show_menu();
-        break;
-      } else if (counter == 0) {
-        R = stringThree.toInt();
-        stringThree = "";
-        counter++;
-      } else if (counter == 1) {
-        L = stringThree.toInt();
-        Serial.print("R=");
-        Serial.println(R);
-        Serial.print("L=");
-        Serial.println(L);
-        delay(1000);
-        counter = 0;
-        break;
-      }
+    if (stringThree.length() == 4 || key == '#') {
+      // if (SelectMode) {
+      R = stringThree.toInt();
+      L = stringThree.toInt();
+      Serial.print("R=");
+      Serial.println(R);
+      Serial.print("L=");
+      Serial.println(L);
+      delay(1000);
+      // show_menu();
+      stringThree = "";
+      break;
+      // } else if (counter == 0) {
+      //   R = stringThree.toInt();
+      //   stringThree = "";
+      //   counter++;
+      // } else if (counter == 1) {
+      //   L = stringThree.toInt();
+      //   Serial.print("R=");
+      //   Serial.println(R);
+      //   Serial.print("L=");
+      //   Serial.println(L);
+      //   delay(1000);
+      //   counter = 0;
+      //   break;
+      // }
     }
   }
   stringThree = "";
@@ -413,13 +417,14 @@ void run() {  //執行主程式
     char key = keypad.getKey();
     u8g2.clearBuffer();
     u8g2.setCursor(0, 15);
-    if (SelectMode) {
-      u8g2.print("左右眼速度");
-    } else if (counter == 0) {
-      u8g2.print("右眼速度");
-    } else {
-      u8g2.print("左眼速度");
-    }
+    // if (SelectMode) {
+    u8g2.print("左右眼速度");
+    // }
+    // else if (counter == 0) {
+    //   u8g2.print("右眼速度");
+    // } else {
+    //   u8g2.print("左眼速度");
+    // }
 
     // u8g2.sendBuffer();
 
@@ -429,35 +434,58 @@ void run() {  //執行主程式
 
       Serial.println(stringThree);
     }
+    u8g2.setCursor(15, 0);
+    u8g2.print("speed= ");
     u8g2.setCursor(15, 35);
     u8g2.print(stringThree);
     u8g2.sendBuffer();
     if (stringThree.length() == 4 || key == '#') {
-      if (SelectMode) {
-        R_speed = stringThree.toInt();
-        L_speed = stringThree.toInt();
-        Serial.print("R_speed=");
-        Serial.println(R);
-        Serial.print("L_speed=");
-        Serial.println(L);
-        delay(1000);
-        show_menu();
-        return;
-      } else if (counter == 0) {
-        R_speed = stringThree.toInt();
-        stringThree = "";
-        counter++;
-      } else if (counter == 1) {
-        L_speed = stringThree.toInt();
-        Serial.print("R_speed=");
-        Serial.println(R);
-        Serial.print("L_speed=");
-        Serial.println(L_speed);
-        delay(1000);
-        counter = 0;
-        show_menu();
-        return;
-      }
+      // if (SelectMode) {
+      R_speed = stringThree.toInt();
+      L_speed = stringThree.toInt();
+      Serial.print("R_speed=");
+      Serial.println(R_speed);
+      Serial.print("L_speed=");
+      Serial.println(L_speed);
+      delay(1000);
+      break;
+
+      // }
+
+      //  else if (counter == 0) {
+      //   R_speed = stringThree.toInt();
+      //   stringThree = "";
+      //   counter++;
+      // } else if (counter == 1) {
+      //   L_speed = stringThree.toInt();
+      //   Serial.print("R_speed=");
+      //   Serial.println(R);
+      //   Serial.print("L_speed=");
+      //   Serial.println(L_speed);
+      //   delay(1000);
+      //   counter = 0;
+      //   show_menu();
+      //   return;
+      // }
+    }
+  }
+  play(R_speed, R);
+}
+void play(int speed, int data_pos) {
+  // void espnow_control(int Motor_number,int mode,int pulse,bool dir,int speed,bool res) {
+  espnow_control(3, 0, data_pos, 0, speed, 0);
+  u8g2.clearBuffer();
+  u8g2.setCursor(0, 15);
+  u8g2.print("執行中...");
+  u8g2.setCursor(0, 35);
+  u8g2.print("按＃停止");
+  u8g2.sendBuffer();
+  while (1) {
+    char key = keypad.getKey();
+    if (key == '#') {
+      espnow_control(3, 1, data_pos, 0, speed, 0);
+      show_menu();
+      break;
     }
   }
 }
