@@ -214,6 +214,7 @@ void ReturnToZero(int8_t options) {
         break;
       case 3:
         // pulse = 0;
+        espnow_control(eye, 1, 0, 1, 200, 1);
         show_menu();
         return;
     }

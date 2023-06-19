@@ -644,8 +644,8 @@ void run() {  //執行主程式
 }
 bool ExecutionState = 0;  //0=停止執行 1＝執行中
 void play(int speed, int data_pos) {
-  stepper1.setSpeed(speed);
-  stepper2.setSpeed(speed);
+  stepper1.setMaxSpeed(speed);
+  stepper2.setMaxSpeed(speed);
   ExecutionState = 1;
   espnow_quit = 0;
   while (1) {  //正式執行
