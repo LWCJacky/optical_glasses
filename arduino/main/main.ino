@@ -38,7 +38,7 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, rows, cols);
 bool show_menu_stest = true;
 int8_t pages = 1;
 int pulse = 0;
-bool playStest=false;
+bool playStest = false;
 
 
 // 傳輸資料的結構體
@@ -54,28 +54,31 @@ typedef struct struct_message {
 struct_message myData;
 
 
-void Task1_senddata(void * pvParameters ) {
-  while(1){
+void Task1_senddata(void *pvParameters) {
+  while (1) {
     vTaskDelay(1);
     // Serial.println("Task1 run");
-    if(playStest&&espnow_quit == 0){
-      play(myData.speed, myData.pulse);
-    }else if(playStest&&espnow_quit == 1){
-      quit(); 
-      playStest=false;
+    if (playStest && espnow_quit == 0) {
+      play(myData.speed,myData.speed, myData.pulse,myData.pulse);
+    } else if (playStest && espnow_quit == 1) {
+      quit();
+      playStest = false;
     }
-    
   }
-  
 }
-void Task2_senddata(void * pvParameters ) {
-  while(1){
+
+
+void Task2_senddata(void *pvParameters) {
+  while (1) {
     int8_t key = get_key();
     if (key > 0) {
       OptionsUpdate(key);
-  }
+    }
   }
 }
+
+
+
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 void setup() {
@@ -150,17 +153,17 @@ void setup() {
     "Task1",        /*任務名稱*/
     10000,          /*堆疊空間*/
     NULL,           /*無輸入值*/
-    0,                 /*優先序0*/
-    &Task1,       /*對應的任務變數位址*/
-    0);                /*指定在核心0執行 */
+    0,              /*優先序0*/
+    &Task1,         /*對應的任務變數位址*/
+    0);             /*指定在核心0執行 */
   xTaskCreatePinnedToCore(
     Task2_senddata, /*任務實際對應的Function*/
     "Task1",        /*任務名稱*/
     10000,          /*堆疊空間*/
     NULL,           /*無輸入值*/
-    0,                 /*優先序0*/
-    &Task2,       /*對應的任務變數位址*/
-    1);     
+    0,              /*優先序0*/
+    &Task2,         /*對應的任務變數位址*/
+    1);
   // run();
 }
 // callback function that will be executed when data is received
@@ -243,8 +246,8 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
   } else if (myData.Motor_number == 3) {  //執行主程式
     if (myData.mode != 1) {
       espnow_quit = 0;
-      playStest=true;
-      
+      playStest = true;
+
     } else {
       espnow_quit = 1;
     }
@@ -259,6 +262,7 @@ void moto_run() {
   // 驅動兩顆馬達\
 
   while (1) {
+    quit();
     stepper1.run();
     stepper2.run();
     if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0) {
@@ -479,7 +483,7 @@ void show_menu() {  //顯示菜單
   } else if (pages == 2) {
     u8g2.clearBuffer();
     u8g2.setCursor(0, 15);
-    u8g2.print("1.TEXT");
+    u8g2.print("1.測試");
     u8g2.setCursor(0, 35);
     u8g2.print("2.XXXXXX");
     u8g2.setCursor(0, 55);
@@ -488,44 +492,72 @@ void show_menu() {  //顯示菜單
   }
 }
 
+
+int8_t ChooseLeftAndRight() {  //選擇同步或獨立模式
+  while (1) {
+    int key = keypad.getKey();
+
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 15);
+    u8g2.print("1.雙眼同步");
+    u8g2.setCursor(0, 35);
+    u8g2.print("2.獨立控制");
+    u8g2.setCursor(0, 55);
+    u8g2.print("3.返回");
+    u8g2.sendBuffer();
+    if (key > 0 && key < 4) {
+      return key;
+    }
+  }
+}
+
+
+
+
+
 void run() {  //執行主程式
   String stringThree;
   int R = 0;
   int L = 0;
   int R_speed = 0;
   int L_speed = 0;
-
+  bool state = false;
   bool SelectMode;  //TRUE=雙眼參數同步/FALSE=雙眼設定獨立參數
-  //選擇模式
-  // while (1) {
-  // char key = keypad.getKey();
-  // bool state = false;
-  // u8g2.clearBuffer();
-  // u8g2.setCursor(0, 15);
-  // u8g2.print("1.one");
-  // u8g2.setCursor(0, 35);
-  // u8g2.print("2.two");
-  // u8g2.setCursor(0, 55);
-  // u8g2.print("3.返回");
-  // u8g2.sendBuffer();
-  // switch (key) {
-  //   case '1':
-  //     SelectMode = true;
-  //     state = true;
-  //     break;
-  //   case '2':
-  //     SelectMode = false;
-  //     state = true;
-  //     break;
-  //   case '3':
-  //     show_menu();
-  //     return;
-  // }
-  // if (state) {
-  //   break;
-  // }
-  // }
-  // int8_t counter = 0;
+  //########選運作模式###########
+  while (1) {
+    int key = keypad.getKey();
+
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 15);
+    u8g2.print("1.雙眼同步");
+    u8g2.setCursor(0, 35);
+    u8g2.print("2.獨立控制");
+    u8g2.setCursor(0, 55);
+    u8g2.print("3.返回");
+    u8g2.sendBuffer();
+    //選擇模式
+    switch (key) {
+      case '1':
+        SelectMode = true;
+        state = true;
+        break;
+      case '2':
+        SelectMode = false;
+        state = true;
+        break;
+      case '3':
+        show_menu();
+        return;
+    }
+    if (state) {
+      break;
+    }
+  }
+  //########選運作模式 END###########
+
+
+  //########選位置###########
+  int8_t counter = 0;
   //輸入位置
   while (1) {
     char key = keypad.getKey();
@@ -533,15 +565,14 @@ void run() {  //執行主程式
     u8g2.clearBuffer();
     u8g2.setCursor(0, 15);
     if (SelectMode) {
-      u8g2.print("左右眼 INPUT");
+      u8g2.print("左右眼輸入：");
+    } else if (counter == 0) {
+      u8g2.print("右眼 INPUT");
+    } else {
+      u8g2.print("左眼 INPUT");
     }
-    // else if (counter == 0) {
-    //   u8g2.print("右眼 INPUT");
-    // } else {
-    //   u8g2.print("左眼 INPUT");
-    // }
 
-    // u8g2.sendBuffer();
+    u8g2.sendBuffer();
 
     if (key != '*' && key != '#' && key != 0) {
 
@@ -554,50 +585,52 @@ void run() {  //執行主程式
     u8g2.setCursor(15, 35);
     u8g2.print(stringThree);
     u8g2.sendBuffer();
-    if (stringThree.length() == 4 || key == '#') {
-      // if (SelectMode) {
-      R = stringThree.toInt();
-      L = stringThree.toInt();
-      Serial.print("R=");
-      Serial.println(R);
-      Serial.print("L=");
-      Serial.println(L);
-      delay(1000);
-      // show_menu();
-      stringThree = "";
-      break;
-      // } else if (counter == 0) {
-      //   R = stringThree.toInt();
-      //   stringThree = "";
-      //   counter++;
-      // } else if (counter == 1) {
-      //   L = stringThree.toInt();
-      //   Serial.print("R=");
-      //   Serial.println(R);
-      //   Serial.print("L=");
-      //   Serial.println(L);
-      //   delay(1000);
-      //   counter = 0;
-      //   break;
-      // }
+    if (stringThree.length() == 4 || key == '#') {  //如過輸入4位數就直接下一步
+      if (SelectMode) {                             //判斷目前的模式
+        R = stringThree.toInt();                    //字串轉整數
+        L = stringThree.toInt();
+        Serial.print("R=");
+        Serial.println(R);
+        Serial.print("L=");
+        Serial.println(L);
+        delay(1000);
+        // show_menu();
+        stringThree = "";
+        break;
+      } else if (counter == 0) {
+        R = stringThree.toInt();
+        stringThree = "";
+        counter++;
+      } else if (counter == 1) {
+        L = stringThree.toInt();
+        Serial.print("R=");
+        Serial.println(R);
+        Serial.print("L=");
+        Serial.println(L);
+        delay(1000);
+        counter = 0;
+        break;
+      }
     }
   }
+  //########選位置 END###########
+
+  //########選速度###########
   stringThree = "";
   //輸入速度
   while (1) {
     char key = keypad.getKey();
     u8g2.clearBuffer();
     u8g2.setCursor(0, 15);
-    // if (SelectMode) {
-    u8g2.print("左右眼速度");
-    // }
-    // else if (counter == 0) {
-    //   u8g2.print("右眼速度");
-    // } else {
-    //   u8g2.print("左眼速度");
-    // }
+    if (SelectMode) {
+      u8g2.print("左右眼速度");
+    } else if (counter == 0) {
+      u8g2.print("右眼速度");
+    } else {
+      u8g2.print("左眼速度");
+    }
 
-    // u8g2.sendBuffer();
+    u8g2.sendBuffer();
 
     if (key != '*' && key != '#' && key != 0) {
 
@@ -611,41 +644,40 @@ void run() {  //執行主程式
     u8g2.print(stringThree);
     u8g2.sendBuffer();
     if (stringThree.length() == 4 || key == '#') {
-      // if (SelectMode) {
-      R_speed = stringThree.toInt();
-      L_speed = stringThree.toInt();
-      Serial.print("R_speed=");
-      Serial.println(R_speed);
-      Serial.print("L_speed=");
-      Serial.println(L_speed);
-      delay(1000);
-      break;
+      if (SelectMode) {//判斷模式
+        R_speed = stringThree.toInt();
+        L_speed = stringThree.toInt();
+        Serial.print("R_speed=");
+        Serial.println(R_speed);
+        Serial.print("L_speed=");
+        Serial.println(L_speed);
+        delay(1000);
+        break;
 
-      // }
-
-      //  else if (counter == 0) {
-      //   R_speed = stringThree.toInt();
-      //   stringThree = "";
-      //   counter++;
-      // } else if (counter == 1) {
-      //   L_speed = stringThree.toInt();
-      //   Serial.print("R_speed=");
-      //   Serial.println(R);
-      //   Serial.print("L_speed=");
-      //   Serial.println(L_speed);
-      //   delay(1000);
-      //   counter = 0;
-      //   show_menu();
-      //   return;
-      // }
+      }
+      else if (counter == 0) {
+        R_speed = stringThree.toInt();
+        stringThree = "";
+        counter++;
+      } else if (counter == 1) {
+        L_speed = stringThree.toInt();
+        Serial.print("R_speed=");
+        Serial.println(R);
+        Serial.print("L_speed=");
+        Serial.println(L_speed);
+        delay(1000);
+        counter = 0;
+        break;
+      }
     }
   }
-  play(R_speed, R);
+  //########選速度 END###########
+  play(R_speed, L_speed, R, L);
 }
 bool ExecutionState = 0;  //0=停止執行 1＝執行中
-void play(int speed, int data_pos) {
-  stepper1.setMaxSpeed(speed);
-  stepper2.setMaxSpeed(speed);
+void play(int speedR, int speedL, int posR, int posL) {
+  stepper1.setMaxSpeed(speedR);
+  stepper2.setMaxSpeed(speedL);
   ExecutionState = 1;
   espnow_quit = 0;
   while (1) {  //正式執行
@@ -657,8 +689,8 @@ void play(int speed, int data_pos) {
     u8g2.setCursor(15, 35);
     u8g2.print(currentPosition1);
     u8g2.sendBuffer();
-    moveStepperToPosition(stepper1, data_pos);
-    moveStepperToPosition(stepper2, data_pos);
+    moveStepperToPosition(stepper1, posR);
+    moveStepperToPosition(stepper2, posL);
     moto_run();
     delay(1000);
     currentPosition1 = stepper1.currentPosition();
@@ -685,8 +717,10 @@ void play(int speed, int data_pos) {
     u8g2.setCursor(15, 35);
     u8g2.print(currentPosition1);
     u8g2.sendBuffer();
-    moveStepperToPosition(stepper1, -data_pos - currentPosition1);  // 移動到位置1000和500
-    moveStepperToPosition(stepper2, -data_pos - currentPosition2);  // 移動到位置1000和500
+    quit();
+    moveStepperToPosition(stepper1, -posR - currentPosition1);  // 移動到指定位置
+    quit();
+    moveStepperToPosition(stepper2, -posL - currentPosition2);  
     moto_run();
     delay(1000);
     quit();
@@ -702,6 +736,7 @@ void play(int speed, int data_pos) {
     u8g2.print(currentPosition1);
     u8g2.sendBuffer();
     moveStepperToPosition(stepper1, 0);  // 移動到位置1000和500
+    quit();
     moveStepperToPosition(stepper2, 0);  // 移動到位置1000和500
     moto_run();
     delay(1000);
@@ -727,6 +762,5 @@ void quit() {
     moveStepperToPosition(stepper2, 0);  // 移動到位置1000和500
     moto_run();
     show_menu();
-    
   }
 }
