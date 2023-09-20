@@ -52,14 +52,38 @@ typedef struct struct_message {
 } struct_message;
 // Create a struct_message called myData
 struct_message myData;
+bool blink = false;
+void keypadEvent(KeypadEvent key) {  //鍵盤事件
+  switch (keypad.getState()) {
+    case PRESSED:
+      Serial.println(" PRESSED");
+      break;
+
+    case RELEASED:
+      
+        blink = false;
+        Serial.println(" RELEASED");
+      
+      break;
+
+    case HOLD:
+      
+        blink = true;  // Blink the LED when holding the * key.
+        Serial.println(" HOLD");
+      
+      break;
+  }
+  
+}
 
 
 void Task1_senddata(void *pvParameters) {
   while (1) {
     vTaskDelay(1);
+    keypad.addEventListener(keypadEvent);  // Add an event listener for this keypad
     // Serial.println("Task1 run");
     if (playStest && espnow_quit == 0) {
-      play(myData.speed,myData.speed, myData.pulse,myData.pulse);
+      play(myData.speed, myData.speed, myData.pulse, myData.pulse);
     } else if (playStest && espnow_quit == 1) {
       quit();
       playStest = false;
@@ -82,7 +106,7 @@ void Task2_senddata(void *pvParameters) {
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 void setup() {
-
+  keypad.setHoldTime(100);
 
   Serial.begin(115200);
 
@@ -148,6 +172,7 @@ void setup() {
   u8g2.sendBuffer();
   delay(1000);
   show_menu();
+
   xTaskCreatePinnedToCore(
     Task1_senddata, /*任務實際對應的Function*/
     "Task1",        /*任務名稱*/
@@ -342,7 +367,7 @@ AccelStepper *EyeSelection() {
   return nullptr;
 }
 
-void ReturnToZero(int8_t options) {
+void ReturnToZero(int8_t options) {  //手動歸零
   AccelStepper *Eye = EyeSelection();
   u8g2.clearBuffer();
   u8g2.setCursor(0, 15);
@@ -360,16 +385,21 @@ void ReturnToZero(int8_t options) {
         // currentPosition1 = stepper1.currentPosition();
         // currentPosition2 = stepper2.currentPosition();
         if (Eye != nullptr) {
-          moveStepperToPosition(*Eye, Eye->currentPosition() + 20);  // 移動到位置1000和500
-
-          moto_run();
+          
+            do {
+              moveStepperToPosition(*Eye, Eye->currentPosition() + 20);  // 移動到位置1000和500
+              moto_run();
+            } while (blink);
+          
         }
         break;
       case 2:
         if (Eye != nullptr) {
-          moveStepperToPosition(*Eye, Eye->currentPosition() - 20);  // 移動到位置1000和500
+          do {
+            moveStepperToPosition(*Eye, Eye->currentPosition() - 20);  // 移動到位置1000和500
 
-          moto_run();
+            moto_run();
+          } while (blink);
         }
         break;
       case 3:
@@ -644,7 +674,7 @@ void run() {  //執行主程式
     u8g2.print(stringThree);
     u8g2.sendBuffer();
     if (stringThree.length() == 4 || key == '#') {
-      if (SelectMode) {//判斷模式
+      if (SelectMode) {  //判斷模式
         R_speed = stringThree.toInt();
         L_speed = stringThree.toInt();
         Serial.print("R_speed=");
@@ -654,8 +684,7 @@ void run() {  //執行主程式
         delay(1000);
         break;
 
-      }
-      else if (counter == 0) {
+      } else if (counter == 0) {
         R_speed = stringThree.toInt();
         stringThree = "";
         counter++;
@@ -720,7 +749,7 @@ void play(int speedR, int speedL, int posR, int posL) {
     quit();
     moveStepperToPosition(stepper1, -posR - currentPosition1);  // 移動到指定位置
     quit();
-    moveStepperToPosition(stepper2, -posL - currentPosition2);  
+    moveStepperToPosition(stepper2, -posL - currentPosition2);
     moto_run();
     delay(1000);
     quit();
